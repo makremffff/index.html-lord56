@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>iPhone 14 Pro – Loading + Telegram + Ads</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{
+            height:100vh;display:flex;align-items:center;justify-content:center;
+            background:#111;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Helvetica,Arial,sans-serif;
+        }
+        .phone{
+            position:relative;width:min(390px, 90vw);aspect-ratio:9/17.55;
+            background:#000;border-radius:47px;
+            box-shadow:0 0 0 2px #333, 0 0 0 4px #000, 0 25px 50px -10px rgba(0,0,0,.6);
+            overflow:hidden;
+        }
+        .island{
+            position:absolute;top:10px;left:50%;transform:translateX(-50%);
+            width:126px;height:37px;background:#000;border-radius:20px;z-index:3;
+        }
+        .screen{
+            position:absolute;inset:3px;background:#1a1a1a;border-radius:44px;
+            overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;
+            padding-bottom:20px;
+        }
+        .btn-row{display:flex;gap:12px;margin-bottom:12px}
+        .btn{
+            /* تعديل: زيادة العرض ليتسع لأربعة أزرار */
+            width:60px;
+            height:45px; 
+            border-radius:12px;
+            background:linear-gradient(145deg, #c62c2c, #8a1b1b);
+            box-shadow:6px 6px 12px #0f0f0f, -6px -6px 12px #3b3b3b;
+            transition:.15s;cursor:pointer;display:flex;align-items:center;justify-content:center;
+            color:#fff;
+            font-size:11px; /* تعديل: زيادة حجم الخط */
+            font-weight:600;
+            text-align:center;user-select:none;
+            padding:5px; /* تعديل: زيادة الـ padding */
+        }
+        .btn:active{
+            box-shadow:inset 6px 6px 12px #0f0f0f, inset -6px -6px 12px #3b3b3b;
+            transform:scale(.96);
+        }
+        .page{position:absolute;inset:0;background:#000;display:none}
+        .page.active{display:block}
+        .back{position:absolute;top:20px;left:20px;background:#c62c2c;border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px}
+
+        /* دائرة المستخدم */
+        .user-circle{
+            position:absolute;top:20px;left:20px;width:56px;height:56px;border-radius:50%;
+            border:3px solid #c62c2c;background:transparent;display:flex;align-items:center;justify-content:center;z-index:10;
+        }
+        .user-img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:none}
+        .username{position:absolute;top:85px;left:20px;color:#fff;font-size:14px;font-weight:600;z-index:10}
+
+        /* رصيد أنيق - يظهر فقط في الشاشة الرئيسية */
+        .top-balance{
+            position:absolute;
+            top:9%;
+            right:20px;
+            display:flex;
+            flex-direction:column;
+            gap:8px;
+            z-index:10;
+            pointer-events:none;
+        }
+        .balance-row{
+            display:flex;
+            align-items:center;
+            gap:8px;
+        }
+        .balance-label{
+            color:#fff;
+            font-size:13px;
+            font-weight:600;
+            text-shadow:0 0 2px #000;
+        }
+
+        /* LED Style */
+        .led{
+            background:#000;
+            color:#0f0;
+            font-family:'Courier New', monospace;
+            font-weight:bold;
+            padding:2px 6px;
+            border-radius:4px;
+            border:1px solid #0f0;
+            font-size:11px;
+            letter-spacing:1px;
+        }
+
+        /* رسائل التحويل */
+        #swapMsg{margin-top:15px;font-size:14px;font-weight:600;opacity:0;transition:opacity .3s}
+        #swapMsg.error{color:#f44336}
+        #swapMsg.success{color:#4CAF50}
+
+        /* شاشة التحميل */
+        #loaderOverlay{
+            position:absolute;inset:0;background:#000;z-index:999;
+            display:flex;align-items:center;justify-content:center;flex-direction:column;gap:15px;
+        }
+        .loader-circle{
+            width:50px;height:50px;border:5px solid #222;border-top-color:#0f0;border-radius:50%;
+            animation:spin 1s linear infinite;
+        }
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .loader-text{color:#0f0;font-size:13px;font-family:'Courier New',monospace;}
+
+        /* إشعار انتهاء الإعلانات */
+        #notifBar{
+            position:absolute;top:60px;left:50%;transform:translateX(-50%);
+            background:#000;border:1px solid #0f0;color:#0f0;padding:8px 14px;border-radius:8px;
+            font-size:12px;font-family:'Courier New',monospace;display:none;z-index:20;
+        }
+
+        /* Task & Page Styles */
+        .task-list{
+            margin-top:50px;
+            width:100%;
+            max-width:350px;
+            display:flex;
+            flex-direction:column;
+            gap:20px;
+            padding:0 20px;
+        }
+        .task-item{
+            background:rgba(30, 30, 30, 0.9);
+            padding:20px;
+            border-radius:18px;
+            border:1px solid #444;
+            display:flex;
+            flex-direction:column;
+            gap:15px;
+            color:#fff;
+            box-shadow: 0 10px 20px rgba(0,0,0,.5);
+        }
+        .task-header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            font-size:16px;
+            font-weight:700;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+        .task-title{
+            color:#fff;
+            font-size:18px;
+        }
+        .task-reward{
+            font-size:14px;
+            font-weight:600;
+            color:#0f0; 
+            display:flex;
+            align-items:center;
+            gap:5px;
+        }
+        .task-action-container{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-top:5px;
+            min-height: 40px;
+        }
+        .task-status-text{
+            font-size:12px;
+            color:#aaa;
+        }
+        .task-action-btn{
+            background:linear-gradient(145deg, #c62c2c, #8a1b1b);
+            color:#fff;
+            border:none;
+            padding:10px 20px;
+            border-radius:12px;
+            cursor:pointer;
+            font-weight:600;
+            transition:.15s;
+            box-shadow: 3px 3px 6px #0f0f0f, -3px -3px 6px #3b3b3b;
+        }
+        .task-action-btn:hover{opacity:0.9}
+        .task-action-btn:active{
+            box-shadow:inset 6px 6px 12px #0f0f0f, inset -6px -6px 12px #3b3b3b;
+            transform:scale(.96);
+        }
+        .task-completed{
+            background-color:#4CAF50 !important;
+            box-shadow: none !important;
+            padding:10px 20px;
+            border-radius:12px;
+            font-weight:600;
+            font-size:14px;
+            pointer-events: none !important;
+        }
+        .timer-text{
+            color:#c62c2c;
+            font-weight:700;
+            font-size:14px;
+        }
+        
+        /* Withdraw Page Styles (Fixed Aesthetics) */
+        .withdraw-container{
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            height:100%;
+            padding:20px;
+            color:#fff;
+        }
+        .input-group{
+            margin-bottom:25px;
+            width:100%;
+            max-width:300px;
+        }
+        .input-group label{
+            display:block;
+            font-size:14px;
+            margin-bottom:8px;
+            font-weight:600;
+            color:#ccc;
+        }
+        .custom-input{
+            width:100%;
+            padding:12px;
+            border-radius:12px;
+            border:1px solid #444;
+            background:#1a1a1a;
+            color:#0f0;
+            font-size:16px;
+            text-align:center;
+            font-family:'Courier New', monospace;
+            box-shadow:inset 2px 2px 5px #0a0a0a, inset -2px -2px 5px #2a2a2a;
+            margin-bottom: 0;
+            /* Fix: Added padding for better feel */
+            min-height: 48px; 
+            box-sizing: border-box;
+        }
+        .withdraw-note{
+            font-size:12px;
+            color:#aaa;
+            margin-top:8px;
+            margin-bottom:0;
+            line-height: 1.4;
+        }
+        .withdraw-msg, .swap-msg, .addtask-msg{
+            margin-top:20px;
+            font-size:14px;
+            font-weight:600;
+            opacity:0;
+            transition:opacity .3s;
+        }
+        .withdraw-msg.error, .swap-msg.error, .addtask-msg.error{color:#f44336}
+        .withdraw-msg.success, .swap-msg.success, .addtask-msg.success{color:#4CAF50}
+
+        /* SWAP PAGE CUSTOM STYLES */
+        .swap-container{
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            height:100%;
+            padding:20px;
+            color:#fff;
+        }
+        .currency-box{
+            background:rgba(30, 30, 30, 0.9);
+            padding:15px;
+            border-radius:15px;
+            border:1px solid #c62c2c;
+            width:100%;
+            max-width:300px;
+            margin-bottom:20px;
+            box-shadow:0 0 15px rgba(198, 44, 44, 0.2);
+        }
+        .currency-label{
+            font-size:12px;
+            color:#ccc;
+            display:flex;
+            align-items:center;
+            gap:5px;
+            margin-bottom:8px;
+            font-weight: 600;
+        }
+        .currency-input-field{
+            background:transparent;
+            border:none;
+            width:100%;
+            font-size:24px;
+            font-weight:700;
+            color:#0f0;
+            padding:5px 0;
+            outline:none;
+            font-family:'Courier New', monospace;
+        }
+        .swap-arrow{
+            background:linear-gradient(145deg, #c62c2c, #8a1b1b);
+            width:35px;
+            height:35px;
+            border-radius:50%;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            color:#fff;
+            font-size:18px;
+            margin: -10px auto;
+            z-index: 5;
+            box-shadow: 0 0 10px rgba(198, 44, 44, 0.8);
+        }
+        .swap-rate{
+            font-size:13px;
+            color:#bbb;
+            margin-top:20px;
+            margin-bottom:20px;
+            text-align:center;
+            font-weight: 600;
+        }
+        .swap-btn-custom{
+            width:100%; max-width:300px; padding:15px 30px; font-size:18px;
+            background:linear-gradient(145deg, #c62c2c, #8a1b1b);
+            border:none;color:#fff;padding:15px 30px;border-radius:12px;
+            font-size:16px;font-weight:600;cursor:pointer;
+            box-shadow:6px 6px 12px #0f0f0f, -6px -6px 12px #3b3b3b;transition:all .15s
+        }
+        .swap-btn-custom:active{
+            box-shadow:inset 6px 6px 12px #0f0f0f, inset -6px -6px 12px #3b3b3b;
+            transform:scale(.96);
+        }
+
+        /* REFERRAL PAGE CUSTOM STYLES */
+        .refal-container{
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            height:100%;
+            padding:20px;
+        }
+        .refal-box{
+            background:rgba(30, 30, 30, 0.9);
+            padding:20px;
+            border-radius:18px;
+            border:1px solid #444;
+            box-shadow: 0 10px 20px rgba(0,0,0,.5);
+            width:100%;
+            max-width:300px;
+            text-align:center;
+        }
+        .ref-link-display{
+            background:#000;
+            color:#0f0;
+            padding:12px;
+            border-radius:10px;
+            border:1px solid #0f0;
+            word-break: break-all;
+            margin-top:15px;
+            margin-bottom:20px;
+            font-size:11px;
+            font-family:'Courier New', monospace;
+        }
+        .ref-info-line{
+            color:#fff;
+            font-size:16px;
+            margin-bottom:15px;
+            font-weight:600;
+        }
+
+        /* ADD TASK PAGE STYLES */
+        .add-task-container{
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            /* Adjust height calc to prevent shrinkage */
+            height: 100%;
+            padding:20px;
+            color:#fff;
+        }
+        .add-task-box{
+            background:rgba(30, 30, 30, 0.9);
+            padding:20px;
+            border-radius:18px;
+            border:1px solid #444;
+            box-shadow: 0 10px 20px rgba(0,0,0,.5);
+            width:100%;
+            max-width:330px;
+            margin-top:20px;
+        }
+        .task-input-field{
+            width:100%;
+            padding:12px;
+            border-radius:10px;
+            border:1px solid #c62c2c;
+            background:#1a1a1a;
+            color:#fff;
+            font-size:14px;
+            font-family: inherit;
+            margin-bottom:15px;
+            box-shadow:inset 1px 1px 3px #000000, inset -1px -1px 3px #444444;
+            box-sizing: border-box; /* Fix for padding/width issue */
+        }
+        .cost-display{
+            font-size:14px;
+            font-weight:600;
+            margin-top:10px;
+            margin-bottom:20px;
+            color:#0f0; 
+            text-align: center;
+        }
+        .user-options-container{
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .user-option-btn{
+            background: #2a2a2a;
+            color: #ccc;
+            border: 1px solid #555;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: 0.2s;
+            width: 80px;
+            text-align: center;
+        }
+        .user-option-btn.selected{
+            background: linear-gradient(145deg, #c62c2c, #8a1b1b);
+            color: #fff;
+            border-color: #c62c2c;
+            box-shadow: 0 0 5px rgba(198, 44, 44, 0.5);
+        }
+
+        /* TON Pay Styles */
+        .wallet-status{
+            margin-top: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f0;
+            text-align: center;
+        }
+        .wallet-address-display{
+            font-size: 12px;
+            color: #aaa;
+            word-break: break-all;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 8px;
+        }
+        #deposit-btn {
+            background:linear-gradient(145deg, #0f0, #0c0) !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone">
+        <div id="loaderOverlay">
+            <div class="loader-circle"></div>
+            <div class="loader-text">Loading user data...</div>
+        </div>
+
+        <div id="notifBar">✅ انتهيت من الإعلانات لليوم، عد غدًا!</div>
+
+        <div class="user-circle" id="userCircle"><img class="user-img" id="userImg"></div>
+        <div class="username" id="username"></div>
+        
+        <div class="island"></div>
+
+        <div class="top-balance" id="topBalance">
+            <div class="balance-row">
+                <span class="balance-label">Points</span>
+                <span class="led" id="points">0</span>
+            </div>
+            <div class="balance-row">
+                <span class="balance-label">USDT</span>
+                <span class="led" id="usdt">0.00</span>
+            </div>
+            <div class="balance-row">
+                <span class="balance-label">TON</span>
+                <span class="led" id="ton">0.00</span>
+            </div>
+        </div>
+
+        <div class="screen" id="home">
+            <div class="btn-row">
+                <div class="btn" data-page-target="withdraw">Withdraw</div>
+                <div class="btn" data-page-target="task">Task</div>
+                <div class="btn" id="adsBtn">Ads</div>
+                <div class="btn" data-page-target="swap">Swap</div>
+            </div>
+            <div class="btn-row"> 
+                <div class="btn" data-page-target="addtask">Add Task</div> 
+                <div class="btn" data-page-target="refal">Refal</div>
+            </div>
+        </div>
+
+        <div class="page" id="withdraw">
+            <button class="back" data-page-target="home">Back</button>
+            <div class="withdraw-container">
+                <h2 style="margin-bottom:30px; color:#c62c2c; text-shadow:0 0 5px rgba(198, 44, 44, 0.5);">USDT Withdrawal</h2>
+                
+                <div class="input-group">
+                    <label for="withdrawAmount">Amount (USDT)</label>
+                    <input type="number" id="withdrawAmount" class="custom-input" placeholder="0.00" min="0.03" step="0.01">
+                    <p class="withdraw-note">Minimum withdrawal amount: 0.03 USDT</p>
+                </div>
+
+                <div class="input-group">
+                    <label for="binanceUID">Binance Pay ID / UID</label>
+                    <input type="text" id="binanceUID" class="custom-input" placeholder="Enter 8-10 digit ID">
+                    <p class="withdraw-note">Ensure your ID is correct for Binance Pay.</p>
+                </div>
+                
+                <button id="withdrawButton" class="task-action-btn" style="width:100%; max-width:300px; padding:15px 30px; font-size:18px;">
+                    Withdraw Now
+                </button>
+                
+                <div id="withdrawMsg" class="withdraw-msg"></div>
+            </div>
+        </div>
+        
+        <div class="page" id="task">
+            <button class="back" data-page-target="home">Back</button>
+            <div style="display:flex;flex-direction:column;align-items:center;height:100%;color:#fff;">
+                <h2 style="margin-top:80px;margin-bottom:30px;color:#c62c2c;text-shadow:0 0 5px rgba(198, 44, 44, 0.5);">Daily Missions</h2>
+                <div class="task-list">
+                    
+                    <div class="task-item">
+                        <div class="task-header">
+                            <span class="task-title">Join Telegram Channel</span>
+                            <span class="task-reward">+<span class="led">10,000</span> Pts</span>
+                        </div>
+                        <div class="task-action-container">
+                            <span class="task-status-text">One-time task</span>
+                            <button class="task-action-btn" id="taskJoinBtn" data-task-action="go">Go to Channel</button>
+                            <a id="taskJoinLink" target="_blank" style="display:none;" href=""></a>
+                        </div>
+                    </div>
+
+                    <div class="task-item">
+                         <div class="task-header">
+                            <span class="task-title">Watch 300 Ads</span>
+                            <span class="task-reward">+<span class="led">0.015</span> USDT</span>
+                        </div>
+                        <div class="task-action-container">
+                            <div id="taskAdsDynamicContent">
+                                <span id="taskAdsCount" class="led" style="margin-right: 5px;">0/300</span>
+                                <span id="taskAdsTimer" class="timer-text" style="display:none;"></span>
+                            </div>
+                            <button class="task-action-btn" id="taskAdsBtn">Watch Ad</button>
+                        </div>
+                    </div>
+                    <div id="taskMsg" style="margin-top:15px;text-align:center;font-size:14px;font-weight:600;color:#fff;opacity:0;transition:opacity .3s"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="page" id="addtask">
+            <button class="back" data-page-target="home">Back</button>
+            <div class="add-task-container">
+                <h2 style="margin-top:80px; margin-bottom:20px; color:#00f; text-shadow:0 0 5px rgba(0, 0, 255, 0.5);">Add Telegram Task</h2>
+                
+                <div class="add-task-box">
+                    
+                    <button data-page-target="tonwallet" class="swap-btn-custom" style="width:100%; font-size:14px; margin-bottom: 20px; padding: 10px; background:linear-gradient(145deg, #0077B6, #004F7A);">
+                        Deposit TON (Connect Wallet)
+                    </button>
+                    
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <label for="taskLink">Channel/Bot Link (t.me/...)</label>
+                        <input type="url" id="taskLink" class="task-input-field" placeholder="e.g., https://t.me/mychannel">
+                    </div>
+                    
+                    <div class="input-group" style="margin-bottom: 10px;">
+                        <label style="margin-bottom: 15px;">Select Target Users</label>
+                        <div class="user-options-container">
+                            <button class="user-option-btn" data-users="100">100 Users</button>
+                            <button class="user-option-btn" data-users="500">500 Users</button>
+                            <button class="user-option-btn" data-users="1000">1000 Users</button>
+                        </div>
+                        <input type="hidden" id="targetUsers" value="100"> </div>
+                    
+                    <p style="font-size:12px; color:#aaa; text-align:center; margin-bottom:15px;">
+                        Cost Rate: 100 Users = <span style="color:#0f0;">0.1 TON</span>
+                    </p>
+                    
+                    <div class="cost-display">
+                        Total Cost: <span id="totalTonCost">0.10</span> TON
+                    </div>
+
+                    <button id="addTonTaskBtn" class="swap-btn-custom" style="width:100%; font-size:16px;">
+                        Pay and Start Task
+                    </button>
+                    
+                    <div id="addTaskMsg" class="addtask-msg"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="page" id="swap">
+            <button class="back" data-page-target="home">Back</button>
+            <div class="swap-container">
+                <h2 style="margin-bottom:30px; color:#c62c2c; text-shadow:0 0 5px rgba(198, 44, 44, 0.5);">Exchange Points</h2>
+                
+                <div class="currency-box">
+                    <div class="currency-label">
+                        <span style="font-size:18px;">🪙</span>
+                        <span>You Pay (Points)</span>
+                    </div>
+                    <input type="number" id="pointsInput" class="currency-input-field" placeholder="0" min="0" step="100000">
+                </div>
+
+                <div class="swap-arrow">↓</div>
+                <div class="swap-rate">
+                    Rate: 100,000 Points = 0.01 USDT
+                </div>
+
+                <div class="currency-box" style="margin-bottom:30px;">
+                    <div class="currency-label" style="color:#4CAF50;">
+                        <span style="font-size:18px;">💵</span>
+                        <span>You Receive (USDT)</span>
+                    </div>
+                    <div id="usdtValueDisplay" class="currency-input-field" style="color:#4CAF50;">0.00</div>
+                </div>
+
+                <button id="convertBtn" class="swap-btn-custom">Convert</button>
+                <div id="swapMsg" class="swap-msg"></div>
+            </div>
+        </div>
+
+        <div class="page" id="refal">
+            <button class="back" data-page-target="home">Back</button>
+            <div class="refal-container">
+                <h2 style="margin-top:80px; margin-bottom:30px; color:#c62c2c; text-shadow:0 0 5px rgba(198, 44, 44, 0.5);">Referral Program</h2>
+                
+                <div class="refal-box">
+                    <div class="ref-info-line">Invite Friends to Earn!</div>
+
+                    <div style="font-size:14px; color:#aaa; margin-bottom:10px;">Your Unique Referral Link:</div>
+                    
+                    <div id="refLinkDisplay" class="ref-link-display">Loading...</div>
+
+                    <button id="copyBtn" class="swap-btn-custom">
+                        Copy Link
+                    </button>
+                    
+                    <div id="copyMsg" style="color:#4CAF50;margin-top:15px;opacity:0;transition:opacity .3s">✓ Copied!</div>
+
+                    <div style="margin-top:30px;color:#fff;font-size:18px">
+                        Total Referrals: <span id="refCount" class="led">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="page" id="tonwallet">
+            <button class="back" data-page-target="home">Back</button>
+            <div class="withdraw-container" style="justify-content: flex-start; padding-top: 80px;">
+                <h2 style="margin-bottom:30px; color:#0077B6; text-shadow:0 0 5px rgba(0, 119, 182, 0.5);">TON Wallet Connect & Deposit</h2>
+                
+                <div class="input-group" style="max-width:330px; text-align: center;">
+                    <label style="margin-bottom:15px;">Connect your TON Wallet for deposits and payments.</label>
+                    
+                    <button id="connectWallet" class="task-action-btn" style="width:100%; max-width:330px; padding:15px 30px; font-size:18px; background:linear-gradient(145deg, #0077B6, #004F7A); box-shadow:6px 6px 12px #0f0f0f, -6px -6px 12px #3b3b3b; margin-bottom: 20px;">
+                        Connect Wallet
+                    </button>
+
+                    <div id="walletStatus" class="wallet-status">Disconnected</div>
+                    <div id="walletAddress" class="wallet-address-display" style="display:none;"></div>
+                </div>
+                
+                <button id="deposit-btn" class="task-action-btn" style="width:100%; max-width:330px; padding:15px 30px; font-size:16px; margin-top: 30px;">
+                    إيداع TON
+                </button>
+                
+                <div id="tonDepositMsg" class="withdraw-msg"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://ad.gigapub.tech/script?id=3459"></script>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <script src="index.js"></script>
+</body>
+</html>
